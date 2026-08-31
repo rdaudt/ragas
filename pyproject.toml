@@ -6,6 +6,8 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "chromadb>=1.0",
+    # RAGAS 0.4.3 still imports chat_models.vertexai, removed in community 0.4.x.
+    "langchain-community==0.3.31",
     "openai>=1.100",
     "pandas>=2.3",
     "pydantic-settings>=2.10",
