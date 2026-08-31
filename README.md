@@ -50,6 +50,9 @@ Supported `.env` values:
 
 ## Staged workflow
 
+For an operator-focused checklist with recovery steps and paid-call boundaries, see
+[`docs/RUN_PLAYBOOK.md`](docs/RUN_PLAYBOOK.md).
+
 Run every command inside the activated `.venv`, or prefix it with `uv run`.
 
 1. Build the local Chroma index. A matching corpus/configuration fingerprint reuses the index. The
