@@ -28,6 +28,7 @@ def build_index(settings: Settings, index: WritableIndex, rebuild: bool = False)
         pdf_paths,
         chunk_tokens=settings.chunk_tokens,
         chunk_overlap=settings.chunk_overlap,
+        embedding_model=settings.embedding_model,
     )
     pages = load_pdf_pages(pdf_paths)
     chunks = chunk_pages(
@@ -47,4 +48,3 @@ def build_index(settings: Settings, index: WritableIndex, rebuild: bool = False)
         chunk_count=len(chunks),
         reused=reused,
     )
-

@@ -30,9 +30,11 @@ Copy the template and add the real key locally:
 Copy-Item .env.example .env
 ```
 
-All OpenAI clients receive their key from `Settings`, which loads `.env`. The application does not
-read secrets from source files, Streamlit configuration, command arguments, or committed files.
-`.env` is ignored by Git; verify that it remains untracked before every push.
+All OpenAI clients receive their key from `Settings`, which loads `.env`. The application ignores
+inherited process environment secrets so a shell-level `OPENAI_API_KEY` cannot override the key in
+the project `.env`. It does not read secrets from source files, Streamlit configuration, command
+arguments, or committed files. `.env` is ignored by Git; verify that it remains untracked before
+every push.
 
 Supported `.env` values:
 
@@ -50,7 +52,9 @@ Supported `.env` values:
 
 Run every command inside the activated `.venv`, or prefix it with `uv run`.
 
-1. Build the local Chroma index. A matching corpus/configuration fingerprint reuses the index.
+1. Build the local Chroma index. A matching corpus/configuration fingerprint reuses the index. The
+   fingerprint includes the PDF bytes, chunk settings, and embedding model; interrupted builds are
+   not considered reusable.
 
    ```powershell
    uv run ragas-demo ingest
@@ -96,7 +100,8 @@ Run every command inside the activated `.venv`, or prefix it with `uv run`.
    ```
 
    This writes `results/scores.csv`, `results/scores.json`, and `results/report.md`. Paid scoring
-   checkpoints remain under ignored `.ragas-demo/checkpoints/`.
+   checkpoints remain under ignored `.ragas-demo/checkpoints/`. Scoring and reporting reject
+   missing, duplicate, or mismatched case IDs before producing finalized artifacts.
 
 An optional live credential/index check performs exactly one chatbot query:
 
@@ -122,8 +127,9 @@ settings. Ingestion stops rather than silently indexing encrypted, unreadable, o
 - **Index collection missing:** run `uv run ragas-demo ingest` before chat, answer collection, or smoke.
 - **Corpus/config changed:** run ingestion with `--rebuild`.
 - **Interrupted paid stage:** rerun that stage with `--resume`; completed cases are checkpointed.
+  If the test set or responses changed since the checkpoint was written, delete the stale checkpoint
+  and restart that stage intentionally.
 - **Existing finalized artifact:** inspect it first, then use the stage's explicit `--force` option only
   when replacement is intentional.
 - **RAGAS import regression:** keep the lockfile. RAGAS 0.4.3 still imports a module removed from
   `langchain-community` 0.4.x, so this project pins the compatible 0.3.31 release and tests the import.
-

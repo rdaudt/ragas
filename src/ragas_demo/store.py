@@ -46,7 +46,11 @@ class VectorIndex:
             collection = self._collection()
         except NotFoundError:
             return False
-        return collection.metadata.get("corpus_fingerprint") == corpus_fingerprint
+        metadata = collection.metadata or {}
+        return (
+            metadata.get("corpus_fingerprint") == corpus_fingerprint
+            and metadata.get("build_complete") is True
+        )
 
     def replace(
         self,
@@ -60,7 +64,7 @@ class VectorIndex:
             pass
         collection = self.client.create_collection(
             self.collection_name,
-            metadata={"hnsw:space": "cosine", "corpus_fingerprint": corpus_fingerprint},
+            metadata={"hnsw:space": "cosine", "build_complete": False},
         )
         for start in range(0, len(chunks), batch_size):
             batch = list(chunks[start : start + batch_size])
@@ -78,6 +82,12 @@ class VectorIndex:
                     for chunk in batch
                 ],
             )
+        collection.modify(
+            metadata={
+                "corpus_fingerprint": corpus_fingerprint,
+                "build_complete": True,
+            }
+        )
 
     def query(self, question: str, top_k: int) -> list[SourceChunk]:
         collection = self._collection()

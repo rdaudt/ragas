@@ -33,3 +33,14 @@ def test_settings_reject_invalid_chunk_overlap(tmp_path: Path, monkeypatch) -> N
     with pytest.raises(ValueError, match="overlap"):
         Settings(_env_file=env_file)
 
+
+def test_dotenv_api_key_overrides_inherited_process_environment(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "organizational-key")
+    env_file = tmp_path / ".env"
+    env_file.write_text("OPENAI_API_KEY=personal-dotenv-key\n", encoding="utf-8")
+
+    settings = Settings(_env_file=env_file)
+
+    assert settings.openai_api_key.get_secret_value() == "personal-dotenv-key"

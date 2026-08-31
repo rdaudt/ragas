@@ -10,6 +10,7 @@ from ragas_demo.evaluation import (
     generate_testset,
     load_jsonl,
     score_answers,
+    validate_complete_records,
 )
 from ragas_demo.indexing import build_index
 from ragas_demo.ingestion import chunk_pages, discover_pdfs, load_pdf_pages
@@ -79,9 +80,22 @@ def score(
 ) -> None:
     """Score collected responses using the four required RAGAS metrics."""
     settings = _settings()
+    cases = load_jsonl(settings.results_dir / "testset.jsonl")
+    if not cases:
+        raise typer.BadParameter("Generate and review results/testset.jsonl first")
     answered = load_jsonl(settings.results_dir / "responses.jsonl")
     if not answered:
         raise typer.BadParameter("Collect responses before scoring")
+    try:
+        validate_complete_records(
+            cases,
+            answered,
+            fields=("user_input", "reference"),
+            expected_label="test set",
+            actual_label="responses",
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
     output = settings.state_dir / "checkpoints" / "scores.jsonl"
     records = asyncio.run(
         score_answers(answered, RagasMetricScorer(settings), output, resume=resume)
@@ -93,9 +107,32 @@ def score(
 def report() -> None:
     """Create finalized CSV, JSON, and Markdown results artifacts."""
     settings = _settings()
+    cases = load_jsonl(settings.results_dir / "testset.jsonl")
+    if not cases:
+        raise typer.BadParameter("Generate and review results/testset.jsonl first")
+    responses = load_jsonl(settings.results_dir / "responses.jsonl")
+    if not responses:
+        raise typer.BadParameter("Collect responses before creating the report")
     scores = load_jsonl(settings.state_dir / "checkpoints" / "scores.jsonl")
     if not scores:
         raise typer.BadParameter("Score responses before creating the report")
+    try:
+        validate_complete_records(
+            cases,
+            responses,
+            fields=("user_input", "reference"),
+            expected_label="test set",
+            actual_label="responses",
+        )
+        validate_complete_records(
+            responses,
+            scores,
+            fields=("user_input", "reference", "response", "retrieved_contexts", "source_ids"),
+            expected_label="responses",
+            actual_label="scores",
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
     write_report_artifacts(scores, settings.results_dir)
     typer.echo(f"Wrote finalized results to {settings.results_dir}.")
 

@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from ragas_demo.models import DocumentChunk
 from ragas_demo.store import VectorIndex
 
@@ -7,6 +9,17 @@ from ragas_demo.store import VectorIndex
 class FakeEmbedder:
     def embed(self, texts: list[str]) -> list[list[float]]:
         return [[1.0, 0.0] if "safety" in text.lower() else [0.0, 1.0] for text in texts]
+
+
+class FailingSecondBatchEmbedder:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        self.calls += 1
+        if self.calls == 2:
+            raise RuntimeError("embedding failed")
+        return [[1.0, 0.0] for _ in texts]
 
 
 def make_chunk(identifier: str, text: str, page: int) -> DocumentChunk:
@@ -41,3 +54,15 @@ def test_vector_index_does_not_match_missing_fingerprint(tmp_path: Path) -> None
 
     assert not index.matches("missing")
 
+
+def test_vector_index_does_not_match_incomplete_replacement(tmp_path: Path) -> None:
+    index = VectorIndex(tmp_path / "chroma", FailingSecondBatchEmbedder())
+    chunks = [
+        make_chunk("one", "first chunk", 1),
+        make_chunk("two", "second chunk", 2),
+    ]
+
+    with pytest.raises(RuntimeError):
+        index.replace(chunks, corpus_fingerprint="abc", batch_size=1)
+
+    assert not index.matches("abc")

@@ -20,8 +20,13 @@ def discover_pdfs(corpus_dir: Path) -> list[Path]:
     )
 
 
-def corpus_fingerprint(paths: Iterable[Path], chunk_tokens: int, chunk_overlap: int) -> str:
-    digest = hashlib.sha256(f"{chunk_tokens}:{chunk_overlap}".encode())
+def corpus_fingerprint(
+    paths: Iterable[Path],
+    chunk_tokens: int,
+    chunk_overlap: int,
+    embedding_model: str,
+) -> str:
+    digest = hashlib.sha256(f"{chunk_tokens}:{chunk_overlap}:{embedding_model}".encode())
     for path in sorted(paths, key=lambda item: item.name.casefold()):
         digest.update(path.name.encode("utf-8"))
         with path.open("rb") as source:

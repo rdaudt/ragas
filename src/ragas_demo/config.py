@@ -22,9 +22,20 @@ class Settings(BaseSettings):
     state_dir: Path = Path(".ragas-demo")
     results_dir: Path = Path("results")
 
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls,
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        """Accept explicit constructor values and .env, never inherited environment secrets."""
+        return init_settings, dotenv_settings
+
     @model_validator(mode="after")
     def validate_chunk_overlap(self) -> "Settings":
         if self.chunk_overlap >= self.chunk_tokens:
             raise ValueError("chunk overlap must be smaller than chunk size")
         return self
-

@@ -7,10 +7,44 @@ from ragas_demo.models import PageText
 def test_corpus_fingerprint_changes_with_file_content(tmp_path: Path) -> None:
     pdf = tmp_path / "sample.pdf"
     pdf.write_bytes(b"first")
-    first = corpus_fingerprint([pdf], chunk_tokens=20, chunk_overlap=5)
+    first = corpus_fingerprint(
+        [pdf],
+        chunk_tokens=20,
+        chunk_overlap=5,
+        embedding_model="text-embedding-3-small",
+    )
     pdf.write_bytes(b"second")
 
-    assert corpus_fingerprint([pdf], chunk_tokens=20, chunk_overlap=5) != first
+    assert (
+        corpus_fingerprint(
+            [pdf],
+            chunk_tokens=20,
+            chunk_overlap=5,
+            embedding_model="text-embedding-3-small",
+        )
+        != first
+    )
+
+def test_corpus_fingerprint_changes_with_embedding_model(tmp_path: Path) -> None:
+    pdf = tmp_path / "sample.pdf"
+    pdf.write_bytes(b"same corpus")
+
+    first = corpus_fingerprint(
+        [pdf],
+        chunk_tokens=20,
+        chunk_overlap=5,
+        embedding_model="text-embedding-3-small",
+    )
+
+    assert (
+        corpus_fingerprint(
+            [pdf],
+            chunk_tokens=20,
+            chunk_overlap=5,
+            embedding_model="text-embedding-3-large",
+        )
+        != first
+    )
 
 
 def test_chunk_pages_is_deterministic_and_preserves_metadata() -> None:
@@ -31,4 +65,3 @@ def test_chunk_pages_skips_blank_pages() -> None:
     pages = [PageText(source_file="blank.pdf", page=1, text="  \n ")]
 
     assert chunk_pages(pages, chunk_tokens=20, chunk_overlap=5) == []
-

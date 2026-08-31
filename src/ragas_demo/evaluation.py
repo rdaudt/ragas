@@ -49,6 +49,61 @@ def save_jsonl(path: Path, records: Sequence[dict], force: bool = False) -> None
     _write_jsonl(path, records)
 
 
+def _records_by_case_id(records: Sequence[dict], label: str) -> dict[str, dict]:
+    by_id: dict[str, dict] = {}
+    for record in records:
+        case_id = record.get("case_id")
+        if not isinstance(case_id, str) or not case_id:
+            raise ValueError(f"{label} contains a record without a case_id")
+        if case_id in by_id:
+            raise ValueError(f"{label} contains duplicate case_id {case_id}")
+        by_id[case_id] = record
+    return by_id
+
+
+def validate_record_subset(
+    expected: Sequence[dict],
+    actual: Sequence[dict],
+    fields: Sequence[str],
+    expected_label: str,
+    actual_label: str,
+) -> None:
+    expected_by_id = _records_by_case_id(expected, expected_label)
+    actual_by_id = _records_by_case_id(actual, actual_label)
+    for case_id, actual_record in actual_by_id.items():
+        expected_record = expected_by_id.get(case_id)
+        if expected_record is None:
+            raise ValueError(
+                f"{actual_label} case {case_id} does not belong to current {expected_label}"
+            )
+        for field in fields:
+            if actual_record.get(field) != expected_record.get(field):
+                raise ValueError(
+                    f"{actual_label} case {case_id} does not match current "
+                    f"{expected_label} field {field}"
+                )
+
+
+def validate_complete_records(
+    expected: Sequence[dict],
+    actual: Sequence[dict],
+    fields: Sequence[str],
+    expected_label: str,
+    actual_label: str,
+) -> None:
+    validate_record_subset(expected, actual, fields, expected_label, actual_label)
+    expected_ids = set(_records_by_case_id(expected, expected_label))
+    actual_ids = set(_records_by_case_id(actual, actual_label))
+    missing = sorted(expected_ids - actual_ids)
+    if missing:
+        preview = ", ".join(missing[:5])
+        suffix = "" if len(missing) <= 5 else ", ..."
+        raise ValueError(
+            f"{actual_label} missing {len(missing)} {expected_label} case(s): "
+            f"{preview}{suffix}"
+        )
+
+
 def collect_answers(
     cases: Sequence[dict],
     service: RagService,
@@ -58,6 +113,13 @@ def collect_answers(
     if output_path.exists() and not resume:
         raise FileExistsError(f"Refusing to overwrite {output_path}; use --resume")
     completed = load_jsonl(output_path) if resume else []
+    validate_record_subset(
+        cases,
+        completed,
+        fields=("user_input", "reference"),
+        expected_label="test set",
+        actual_label="response checkpoint",
+    )
     completed_ids = {record["case_id"] for record in completed}
     for case in cases:
         if case["case_id"] in completed_ids:
@@ -86,6 +148,13 @@ async def score_answers(
     if output_path.exists() and not resume:
         raise FileExistsError(f"Refusing to overwrite {output_path}; use --resume")
     completed = load_jsonl(output_path) if resume else []
+    validate_record_subset(
+        answered,
+        completed,
+        fields=("user_input", "reference", "response", "retrieved_contexts", "source_ids"),
+        expected_label="responses",
+        actual_label="score checkpoint",
+    )
     completed_ids = {record["case_id"] for record in completed}
     for record in answered:
         if record["case_id"] in completed_ids:
