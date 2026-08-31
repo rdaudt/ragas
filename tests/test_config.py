@@ -28,6 +28,7 @@ def test_settings_default_ragas_generation_is_low_burst(tmp_path: Path) -> None:
 
     settings = Settings(_env_file=env_file)
 
+    assert settings.testset_generator == "openai"
     assert settings.eval_model == "gpt-4.1-mini"
     assert settings.eval_max_workers == 1
     assert settings.eval_max_retries >= 10

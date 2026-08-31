@@ -46,6 +46,7 @@ For demo reliability under ordinary TPM limits, keep:
 
 ```powershell
 RAGAS_EVAL_MODEL=gpt-4.1-mini
+RAGAS_TESTSET_GENERATOR=openai
 RAGAS_EVAL_MAX_WORKERS=1
 RAGAS_EVAL_MAX_RETRIES=20
 RAGAS_EVAL_MAX_WAIT=90
@@ -117,15 +118,17 @@ Optional one-query smoke test from the CLI:
 uv run ragas-demo smoke --question "What safety measures are recommended?"
 ```
 
-## 5. Generate The RAGAS Test Set
+## 5. Generate The Test Set
 
-Generate the reviewed synthetic test set:
+Generate the reviewed synthetic test set. The default generator is the direct OpenAI structured
+output backend, which avoids the RAGAS synthetic-generation path while preserving the JSONL format
+used by RAGAS scoring:
 
 ```powershell
 uv run ragas-demo generate-testset --size 12
 ```
 
-This is a paid RAGAS generation step. It writes:
+This is a paid OpenAI generation step. It writes:
 
 ```text
 results/testset.jsonl
@@ -140,12 +143,19 @@ If replacement is intentional:
 uv run ragas-demo generate-testset --size 12 --force
 ```
 
+The previous RAGAS synthetic generation path is still available when you explicitly need it:
+
+```powershell
+uv run ragas-demo generate-testset --size 12 --generator ragas --force
+```
+
 After forcing a new test set, do not reuse older responses or score checkpoints.
 If generation hits a 429 TPM rate limit, confirm `.env` is using `RAGAS_EVAL_MODEL=gpt-4.1-mini`,
-`RAGAS_EVAL_MAX_WORKERS=1`, and a small `RAGAS_TESTSET_SOURCE_CHUNKS` value, then rerun the command.
-The single-worker setting reduces request bursts; the source-chunk limit reduces total tokens spent
-while building the synthetic test set. If the org limit is still saturated, lower
-`RAGAS_TESTSET_SOURCE_CHUNKS` to `8` for a smoke-sized demo.
+`RAGAS_TESTSET_GENERATOR=openai`, and a small `RAGAS_TESTSET_SOURCE_CHUNKS` value, then rerun the
+command. If using `--generator ragas`, also keep `RAGAS_EVAL_MAX_WORKERS=1`. The OpenAI backend
+generates cases sequentially; the source-chunk limit reduces total tokens spent while building the
+synthetic test set. If the org limit is still saturated, lower `RAGAS_TESTSET_SOURCE_CHUNKS` to `8`
+for a smoke-sized demo.
 
 ## 6. Collect Chatbot Answers
 

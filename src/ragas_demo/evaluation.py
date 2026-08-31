@@ -6,7 +6,8 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAI
+from pydantic import BaseModel, Field
 from ragas import RunConfig
 from ragas.embeddings.base import embedding_factory
 from ragas.llms import llm_factory
@@ -26,6 +27,15 @@ class CaseScorer(Protocol):
 
 class SyntheticGenerator(Protocol):
     def generate(self, chunk_texts: Sequence[str], size: int) -> list[dict]: ...
+
+
+class SyntheticCase(BaseModel):
+    question: str = Field(min_length=1)
+    reference: str = Field(min_length=1)
+
+
+class SyntheticCaseBatch(BaseModel):
+    cases: list[SyntheticCase]
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -204,6 +214,50 @@ class RagasSyntheticGenerator:
             cases.append({"case_id": digest, "user_input": question, "reference": reference})
         if len(cases) != size:
             raise ValueError(f"RAGAS generated {len(cases)} cases; expected {size}")
+        return cases
+
+
+class OpenAISyntheticGenerator:
+    def __init__(self, client: OpenAI, model: str) -> None:
+        self.client = client
+        self.model = model
+
+    @classmethod
+    def from_settings(cls, settings: Settings) -> "OpenAISyntheticGenerator":
+        client = OpenAI(api_key=settings.openai_api_key.get_secret_value())
+        return cls(client=client, model=settings.eval_model)
+
+    def generate(self, chunk_texts: Sequence[str], size: int) -> list[dict]:
+        cases: list[dict] = []
+        for chunk_text in chunk_texts:
+            if len(cases) >= size:
+                break
+            response = self.client.responses.parse(
+                model=self.model,
+                instructions=(
+                    "Generate one grounded RAG evaluation test case from the provided "
+                    "source text. The question must be answerable from the source text. "
+                    "The reference answer must be concise and factual."
+                ),
+                input=f"Source text:\n{chunk_text}",
+                text_format=SyntheticCaseBatch,
+                temperature=0.2,
+                max_output_tokens=500,
+            )
+            parsed = response.output_parsed
+            for synthetic_case in parsed.cases:
+                question = synthetic_case.question.strip()
+                reference = synthetic_case.reference.strip()
+                if not question or not reference:
+                    continue
+                digest = hashlib.sha256(f"{question}\n{reference}".encode()).hexdigest()[:16]
+                cases.append(
+                    {"case_id": digest, "user_input": question, "reference": reference}
+                )
+                if len(cases) >= size:
+                    break
+        if len(cases) != size:
+            raise ValueError(f"OpenAI generated {len(cases)} cases; expected {size}")
         return cases
 
 

@@ -4,6 +4,7 @@ import typer
 
 from ragas_demo.config import Settings
 from ragas_demo.evaluation import (
+    OpenAISyntheticGenerator,
     RagasMetricScorer,
     RagasSyntheticGenerator,
     collect_answers,
@@ -30,6 +31,15 @@ def _chunks(settings: Settings):
     return chunk_pages(pages, settings.chunk_tokens, settings.chunk_overlap)
 
 
+def _generator_for_backend(settings: Settings, backend: str | None):
+    selected = (backend or settings.testset_generator).lower()
+    if selected == "openai":
+        return OpenAISyntheticGenerator.from_settings(settings)
+    if selected == "ragas":
+        return RagasSyntheticGenerator(settings)
+    raise typer.BadParameter("Generator must be one of: openai, ragas")
+
+
 @app.command()
 def ingest(rebuild: bool = typer.Option(False, help="Replace an existing matching index.")) -> None:
     """Extract, chunk, embed, and persist the PDF corpus."""
@@ -46,13 +56,18 @@ def ingest(rebuild: bool = typer.Option(False, help="Replace an existing matchin
 def generate_testset_command(
     size: int = typer.Option(12, min=1, help="Number of synthetic cases."),
     force: bool = typer.Option(False, help="Replace the existing finalized test set."),
+    generator: str | None = typer.Option(
+        None,
+        help="Synthetic generator backend: openai or ragas.",
+    ),
 ) -> None:
-    """Generate synthetic question/reference pairs with RAGAS."""
+    """Generate synthetic question/reference pairs for RAGAS scoring."""
     settings = _settings()
     output = settings.results_dir / "testset.jsonl"
+    selected_generator = _generator_for_backend(settings, generator)
     cases = generate_testset(
         _chunks(settings),
-        RagasSyntheticGenerator(settings),
+        selected_generator,
         size=size,
         output_path=output,
         force=force,

@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr = Field(validation_alias=AliasChoices("OPENAI_API_KEY"))
     answer_model: str = Field("gpt-4.1-mini", validation_alias="RAGAS_ANSWER_MODEL")
     eval_model: str = Field("gpt-4.1-mini", validation_alias="RAGAS_EVAL_MODEL")
+    testset_generator: str = Field("openai", validation_alias="RAGAS_TESTSET_GENERATOR")
     embedding_model: str = Field(
         "text-embedding-3-small", validation_alias="RAGAS_EMBEDDING_MODEL"
     )

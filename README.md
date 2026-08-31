@@ -43,6 +43,7 @@ Supported `.env` values:
 | `OPENAI_API_KEY` | required | Personal OpenAI credential |
 | `RAGAS_ANSWER_MODEL` | `gpt-4.1-mini` | Chatbot answer model |
 | `RAGAS_EVAL_MODEL` | `gpt-4.1-mini` | Synthetic generation and metric judge |
+| `RAGAS_TESTSET_GENERATOR` | `openai` | Synthetic test-set backend: `openai` or `ragas` |
 | `RAGAS_EMBEDDING_MODEL` | `text-embedding-3-small` | Index and relevancy embeddings |
 | `RAGAS_EVAL_MAX_WORKERS` | `1` | Parallel RAGAS worker count for paid evaluation stages |
 | `RAGAS_EVAL_MAX_RETRIES` | `20` | RAGAS retry attempts for transient provider errors |
@@ -75,10 +76,13 @@ Run every command inside the activated `.venv`, or prefix it with `uv run`.
    uv run streamlit run app.py
    ```
 
-3. Generate the paid 12-case synthetic test set:
+3. Generate the paid 12-case synthetic test set. The default backend is a direct OpenAI structured
+   output generator; RAGAS remains available as an optional generation backend.
 
    ```powershell
    uv run ragas-demo generate-testset --size 12
+   # Optional legacy RAGAS synthetic generation path:
+   uv run ragas-demo generate-testset --size 12 --generator ragas --force
    ```
 
    Review `results/testset.jsonl` before continuing. Regeneration requires `--force` so an accidental

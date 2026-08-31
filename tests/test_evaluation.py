@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from ragas_demo.evaluation import (
+    OpenAISyntheticGenerator,
     RagasSyntheticGenerator,
     collect_answers,
     generate_testset,
@@ -49,6 +50,29 @@ class CapturingRagasGenerator:
         return FakeTestset()
 
 
+class ParsedOpenAIResponse:
+    def __init__(self, question: str, reference: str) -> None:
+        self.output_parsed = type(
+            "ParsedBatch",
+            (),
+            {"cases": [type("ParsedCase", (), {"question": question, "reference": reference})()]},
+        )()
+
+
+class CapturingResponses:
+    def __init__(self) -> None:
+        self.calls = []
+
+    def parse(self, **kwargs):
+        self.calls.append(kwargs)
+        return ParsedOpenAIResponse("What is required?", "Follow the documented requirement.")
+
+
+class CapturingOpenAIClient:
+    def __init__(self) -> None:
+        self.responses = CapturingResponses()
+
+
 def cases() -> list[dict]:
     return [
         {"case_id": "a", "user_input": "first?", "reference": "first"},
@@ -75,6 +99,24 @@ def test_ragas_synthetic_generator_uses_low_burst_run_config() -> None:
     assert inner_generator.run_config.max_workers == 1
     assert inner_generator.run_config.max_retries >= 10
     assert inner_generator.run_config.max_wait >= 60
+
+
+def test_openai_synthetic_generator_returns_ragas_testset_shape() -> None:
+    client = CapturingOpenAIClient()
+    generator = OpenAISyntheticGenerator(client=client, model="gpt-4.1-mini")
+
+    generated = generator.generate(["Chunk text with policy details."], size=1)
+
+    assert generated == [
+        {
+            "case_id": generated[0]["case_id"],
+            "user_input": "What is required?",
+            "reference": "Follow the documented requirement.",
+        }
+    ]
+    assert len(generated[0]["case_id"]) == 16
+    assert client.responses.calls[0]["model"] == "gpt-4.1-mini"
+    assert client.responses.calls[0]["text_format"].__name__ == "SyntheticCaseBatch"
 
 
 def test_generate_testset_limits_source_chunks(tmp_path: Path) -> None:
