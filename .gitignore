@@ -1,0 +1,10 @@
+.worktrees/
+.venv/
+.env
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ragas-demo/
+*.py[cod]
+
