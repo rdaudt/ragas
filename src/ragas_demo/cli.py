@@ -100,6 +100,19 @@ def report() -> None:
     typer.echo(f"Wrote finalized results to {settings.results_dir}.")
 
 
+@app.command()
+def smoke(
+    question: str = typer.Option(
+        "What safety measures are recommended?",
+        help="Single paid query used to validate credentials and the built index.",
+    ),
+) -> None:
+    """Run one explicitly requested live OpenAI query."""
+    result = create_rag_service(_settings()).answer(question)
+    typer.echo(result.answer)
+    for source in result.sources:
+        typer.echo(f"- {source.source_file}, page {source.page} ({source.score:.3f})")
+
+
 if __name__ == "__main__":
     app()
-
