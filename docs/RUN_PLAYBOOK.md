@@ -1,11 +1,19 @@
 # RAGAS Demo Run Playbook
 
 This playbook is the operator checklist for running the local app and the staged RAGAS
-evaluation. Commands assume Windows PowerShell from the repository root.
+evaluation. Commands assume Windows PowerShell from the runnable project root, which is the
+`feature/ragas-demo` worktree while the PR is open:
+
+```powershell
+Set-Location D:\projects\ragas\.worktrees\ragas-demo
+```
+
+Do not run the commands from `D:\projects\ragas` unless the PR branch has been checked out there;
+that main worktree may not contain `pyproject.toml`.
 
 ## 1. Preflight
 
-Confirm you are in the repo and on the expected branch:
+Confirm you are in the runnable project root and on the expected branch:
 
 ```powershell
 git status --short --branch
