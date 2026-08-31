@@ -213,10 +213,12 @@ def generate_testset(
     size: int,
     output_path: Path,
     force: bool = False,
+    limit: int | None = None,
 ) -> list[dict]:
     if output_path.exists() and not force:
         raise FileExistsError(f"Refusing to overwrite {output_path}; use --force")
-    cases = generator.generate([chunk.text for chunk in chunks], size)
+    source_chunks = chunks[:limit] if limit is not None else chunks
+    cases = generator.generate([chunk.text for chunk in source_chunks], size)
     save_jsonl(output_path, cases, force=force)
     return cases
 

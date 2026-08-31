@@ -56,8 +56,12 @@ def generate_testset_command(
         size=size,
         output_path=output,
         force=force,
+        limit=settings.testset_source_chunks,
     )
-    typer.echo(f"Generated {len(cases)} cases at {output}. Spot-check before continuing.")
+    typer.echo(
+        f"Generated {len(cases)} cases at {output} using up to "
+        f"{settings.testset_source_chunks} source chunks. Spot-check before continuing."
+    )
 
 
 @app.command("collect-answers")

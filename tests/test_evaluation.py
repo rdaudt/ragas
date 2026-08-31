@@ -6,6 +6,7 @@ import pytest
 from ragas_demo.evaluation import (
     RagasSyntheticGenerator,
     collect_answers,
+    generate_testset,
     load_jsonl,
     save_jsonl,
     score_answers,
@@ -74,6 +75,26 @@ def test_ragas_synthetic_generator_uses_low_burst_run_config() -> None:
     assert inner_generator.run_config.max_workers == 1
     assert inner_generator.run_config.max_retries >= 10
     assert inner_generator.run_config.max_wait >= 60
+
+
+def test_generate_testset_limits_source_chunks(tmp_path: Path) -> None:
+    class CapturingGenerator:
+        def __init__(self) -> None:
+            self.chunk_texts = []
+
+        def generate(self, chunk_texts, size):
+            self.chunk_texts = list(chunk_texts)
+            return [{"case_id": "a", "user_input": "question?", "reference": "answer"}]
+
+    generator = CapturingGenerator()
+    chunks = [
+        SourceChunk(f"id-{index}", f"chunk {index}", "guide.pdf", index, index, 0.0)
+        for index in range(5)
+    ]
+
+    generate_testset(chunks, generator, size=1, output_path=tmp_path / "testset.jsonl", limit=2)
+
+    assert generator.chunk_texts == ["chunk 0", "chunk 1"]
 
 
 def test_collect_answers_resumes_completed_cases(tmp_path: Path) -> None:

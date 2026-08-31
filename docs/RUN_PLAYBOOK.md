@@ -49,6 +49,7 @@ RAGAS_EVAL_MODEL=gpt-4.1-mini
 RAGAS_EVAL_MAX_WORKERS=1
 RAGAS_EVAL_MAX_RETRIES=20
 RAGAS_EVAL_MAX_WAIT=90
+RAGAS_TESTSET_SOURCE_CHUNKS=24
 ```
 
 Before pushing code, confirm `.env` remains untracked:
@@ -140,9 +141,11 @@ uv run ragas-demo generate-testset --size 12 --force
 ```
 
 After forcing a new test set, do not reuse older responses or score checkpoints.
-If generation hits a 429 TPM rate limit, confirm `.env` is using `RAGAS_EVAL_MODEL=gpt-4.1-mini`
-and `RAGAS_EVAL_MAX_WORKERS=1`, then rerun the command. The single-worker setting reduces RAGAS
-request bursts; it also makes generation slower.
+If generation hits a 429 TPM rate limit, confirm `.env` is using `RAGAS_EVAL_MODEL=gpt-4.1-mini`,
+`RAGAS_EVAL_MAX_WORKERS=1`, and a small `RAGAS_TESTSET_SOURCE_CHUNKS` value, then rerun the command.
+The single-worker setting reduces request bursts; the source-chunk limit reduces total tokens spent
+while building the synthetic test set. If the org limit is still saturated, lower
+`RAGAS_TESTSET_SOURCE_CHUNKS` to `8` for a smoke-sized demo.
 
 ## 6. Collect Chatbot Answers
 
