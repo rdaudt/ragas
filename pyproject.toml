@@ -1,0 +1,47 @@
+[project]
+name = "ragas-demo"
+version = "0.1.0"
+description = "Local RAG chatbot and RAGAS evaluation demonstration"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "chromadb>=1.0",
+    # RAGAS 0.4.3 still imports chat_models.vertexai, removed in community 0.4.x.
+    "langchain-community==0.3.31",
+    "openai>=1.100",
+    "pandas>=2.3",
+    "pydantic-settings>=2.10",
+    "pypdf>=5.0",
+    "ragas>=0.4",
+    "streamlit>=1.49",
+    "tiktoken>=0.11",
+    "typer>=0.16",
+]
+
+[project.scripts]
+ragas-demo = "ragas_demo.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4",
+    "pytest-asyncio>=1.1",
+    "ruff>=0.12",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ragas_demo"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
