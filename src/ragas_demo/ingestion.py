@@ -1,7 +1,7 @@
 import hashlib
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 import tiktoken
 from pypdf import PdfReader
@@ -95,4 +95,3 @@ def chunk_pages(
             if start + chunk_tokens >= len(tokens):
                 break
     return chunks
-
