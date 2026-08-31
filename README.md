@@ -42,8 +42,11 @@ Supported `.env` values:
 |---|---|---|
 | `OPENAI_API_KEY` | required | Personal OpenAI credential |
 | `RAGAS_ANSWER_MODEL` | `gpt-4.1-mini` | Chatbot answer model |
-| `RAGAS_EVAL_MODEL` | `gpt-4.1` | Synthetic generation and metric judge |
+| `RAGAS_EVAL_MODEL` | `gpt-4.1-mini` | Synthetic generation and metric judge |
 | `RAGAS_EMBEDDING_MODEL` | `text-embedding-3-small` | Index and relevancy embeddings |
+| `RAGAS_EVAL_MAX_WORKERS` | `1` | Parallel RAGAS worker count for paid evaluation stages |
+| `RAGAS_EVAL_MAX_RETRIES` | `20` | RAGAS retry attempts for transient provider errors |
+| `RAGAS_EVAL_MAX_WAIT` | `90` | Maximum RAGAS retry wait in seconds |
 | `RAGAS_TOP_K` | `5` | Retrieved chunks per question |
 | `RAGAS_CHUNK_TOKENS` | `800` | Maximum tokens per chunk |
 | `RAGAS_CHUNK_OVERLAP` | `120` | Tokens shared by adjacent chunks |

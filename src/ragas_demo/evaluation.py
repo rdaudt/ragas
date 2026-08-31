@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Protocol
 
 from openai import AsyncOpenAI
+from ragas import RunConfig
 from ragas.embeddings.base import embedding_factory
 from ragas.llms import llm_factory
 from ragas.metrics.collections import AnswerRelevancy, ContextPrecision, ContextRecall, Faithfulness
@@ -180,9 +181,19 @@ class RagasSyntheticGenerator:
             interface="modern",
         )
         self.generator = TestsetGenerator(llm=llm, embedding_model=embeddings)
+        self.run_config = RunConfig(
+            max_workers=settings.eval_max_workers,
+            max_retries=settings.eval_max_retries,
+            max_wait=settings.eval_max_wait,
+        )
 
     def generate(self, chunk_texts: Sequence[str], size: int) -> list[dict]:
-        testset = self.generator.generate_with_chunks(list(chunk_texts), testset_size=size)
+        run_config = self.run_config or RunConfig(max_workers=1, max_retries=20, max_wait=90)
+        testset = self.generator.generate_with_chunks(
+            list(chunk_texts),
+            testset_size=size,
+            run_config=run_config,
+        )
         cases = []
         for sample in testset.to_list():
             question = sample.get("user_input")

@@ -42,6 +42,14 @@ Copy-Item .env.example .env
 
 Edit `.env` and set `OPENAI_API_KEY` to a personal key with billing enabled. The app intentionally
 loads secrets from `.env`; inherited shell environment variables do not override the project file.
+For demo reliability under ordinary TPM limits, keep:
+
+```powershell
+RAGAS_EVAL_MODEL=gpt-4.1-mini
+RAGAS_EVAL_MAX_WORKERS=1
+RAGAS_EVAL_MAX_RETRIES=20
+RAGAS_EVAL_MAX_WAIT=90
+```
 
 Before pushing code, confirm `.env` remains untracked:
 
@@ -132,6 +140,9 @@ uv run ragas-demo generate-testset --size 12 --force
 ```
 
 After forcing a new test set, do not reuse older responses or score checkpoints.
+If generation hits a 429 TPM rate limit, confirm `.env` is using `RAGAS_EVAL_MODEL=gpt-4.1-mini`
+and `RAGAS_EVAL_MAX_WORKERS=1`, then rerun the command. The single-worker setting reduces RAGAS
+request bursts; it also makes generation slower.
 
 ## 6. Collect Chatbot Answers
 

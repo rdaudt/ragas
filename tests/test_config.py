@@ -22,6 +22,18 @@ def test_settings_load_api_key_and_overrides_from_dotenv(tmp_path: Path, monkeyp
     assert settings.top_k == 3
 
 
+def test_settings_default_ragas_generation_is_low_burst(tmp_path: Path) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text("OPENAI_API_KEY=test\n", encoding="utf-8")
+
+    settings = Settings(_env_file=env_file)
+
+    assert settings.eval_model == "gpt-4.1-mini"
+    assert settings.eval_max_workers == 1
+    assert settings.eval_max_retries >= 10
+    assert settings.eval_max_wait >= 60
+
+
 def test_settings_reject_invalid_chunk_overlap(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     env_file = tmp_path / ".env"

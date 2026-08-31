@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from ragas_demo.evaluation import (
+    RagasSyntheticGenerator,
     collect_answers,
     load_jsonl,
     save_jsonl,
@@ -33,6 +34,20 @@ class FakeScorer:
         }
 
 
+class FakeTestset:
+    def to_list(self) -> list[dict]:
+        return [{"user_input": "question?", "reference": "answer"}]
+
+
+class CapturingRagasGenerator:
+    def __init__(self) -> None:
+        self.run_config = None
+
+    def generate_with_chunks(self, chunks, testset_size, run_config):
+        self.run_config = run_config
+        return FakeTestset()
+
+
 def cases() -> list[dict]:
     return [
         {"case_id": "a", "user_input": "first?", "reference": "first"},
@@ -46,6 +61,19 @@ def test_save_jsonl_refuses_unintended_overwrite(tmp_path: Path) -> None:
 
     with pytest.raises(FileExistsError):
         save_jsonl(output, [{"case_id": "b"}])
+
+
+def test_ragas_synthetic_generator_uses_low_burst_run_config() -> None:
+    inner_generator = CapturingRagasGenerator()
+    generator = RagasSyntheticGenerator.__new__(RagasSyntheticGenerator)
+    generator.generator = inner_generator
+    generator.run_config = None
+
+    generator.generate(["chunk"], size=1)
+
+    assert inner_generator.run_config.max_workers == 1
+    assert inner_generator.run_config.max_retries >= 10
+    assert inner_generator.run_config.max_wait >= 60
 
 
 def test_collect_answers_resumes_completed_cases(tmp_path: Path) -> None:
